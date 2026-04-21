@@ -27,12 +27,17 @@ const EMPTY_DRAFT: DraftState = {
   shareholder_type: 'founder',
 }
 
+function formatEur(value: number): string {
+  return value.toLocaleString('de-DE')
+}
+
 export default function GuestCapTable() {
   const navigate = useNavigate()
   const {
     company,
     shareholders,
     setCompanyName,
+    setShareCapital,
     addShareholder,
     deleteShareholder,
     openLoginModal,
@@ -47,6 +52,8 @@ export default function GuestCapTable() {
   const percentRef = useRef<HTMLInputElement>(null)
 
   const companyName = company?.name ?? 'Mein Startup'
+  const shareCapital = company?.share_capital ?? null
+  const hasCapital = shareCapital !== null && shareCapital > 0
   const totalPercent = shareholders.reduce((sum, s) => sum + s.share_percent, 0)
   const totalValid = Math.abs(totalPercent - 1) < 0.001
   const missing = Math.round((1 - totalPercent) * 10000) / 100
@@ -118,6 +125,18 @@ export default function GuestCapTable() {
     void navigate('/round')
   }
 
+  // Grid-Klassen je nach Stammkapital
+  const gridCols = hasCapital
+    ? 'grid-cols-[1fr_100px_100px_80px_80px_28px]'
+    : 'grid-cols-[1fr_120px_100px_32px]'
+
+  // Draft: berechneter Wert für Preview
+  const draftPct = parseFloat(draft.share_percent) / 100
+  const draftValue =
+    hasCapital && !isNaN(draftPct) && draftPct > 0
+      ? Math.round(draftPct * shareCapital!)
+      : null
+
   return (
     <div className="min-h-screen bg-[#f8f7f4]">
       <AppHeader />
@@ -126,33 +145,61 @@ export default function GuestCapTable() {
       <main className="max-w-xl mx-auto px-4 pt-8 pb-16">
         <div className="space-y-6">
           {/* Unternehmensname als Tool-Header */}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={nameFocused ? nameInput : companyName}
-              onFocus={handleCompanyNameFocus}
-              onBlur={handleCompanyNameBlur}
-              onChange={(e) => setNameInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                if (e.key === 'Escape') setNameFocused(false)
-              }}
-              className="text-xl font-semibold text-[#1a1917] bg-transparent border-b-2 border-transparent hover:border-[#e4e2db] focus:border-[#1a3a2a] outline-none transition-all duration-150 pb-0.5 w-full max-w-xs"
-              placeholder="Startup-Name"
-            />
+          <div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nameFocused ? nameInput : companyName}
+                onFocus={handleCompanyNameFocus}
+                onBlur={handleCompanyNameBlur}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  if (e.key === 'Escape') setNameFocused(false)
+                }}
+                className="text-xl font-semibold text-[#1a1917] bg-transparent border-b-2 border-transparent hover:border-[#e4e2db] focus:border-[#1a3a2a] outline-none transition-all duration-150 pb-0.5 w-full max-w-xs"
+                placeholder="Startup-Name"
+              />
+            </div>
+            {/* Stammkapital */}
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-sm text-[#a09e99]">Stammkapital</span>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={shareCapital ?? ''}
+                onChange={(e) =>
+                  setShareCapital(e.target.value ? parseFloat(e.target.value) : null)
+                }
+                placeholder="25.000"
+                className="w-32 text-sm font-tabular text-[#1a1917] bg-transparent border-b border-transparent hover:border-[#e4e2db] focus:border-[#1a3a2a] outline-none transition-all pb-0.5 placeholder:text-[#ccc9c0]"
+              />
+              <span className="text-sm text-[#a09e99]">€</span>
+            </div>
           </div>
 
           {/* Cap Table */}
           <div>
-            <div className="bg-white border border-[#e4e2db] rounded-xl overflow-hidden">
+            <div className="bg-white rounded-xl overflow-hidden shadow-[0_1px_3px_0_rgba(0,0,0,0.06),0_1px_2px_-1px_rgba(0,0,0,0.04)] ring-1 ring-[#e4e2db]">
               {/* Table Header */}
-              <div className="grid grid-cols-[1fr_120px_100px_32px] items-center border-b border-[#e4e2db] px-4 py-2.5">
+              <div className={`grid ${gridCols} items-center border-b border-[#e4e2db] px-4 py-2.5`}>
                 <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99]">
                   Name
                 </span>
                 <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right">
                   Anteil
                 </span>
+                {hasCapital && (
+                  <>
+                    <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right">
+                      Wert
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right">
+                      Anteile
+                    </span>
+                  </>
+                )}
                 <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] pl-3">
                   Typ
                 </span>
@@ -160,40 +207,54 @@ export default function GuestCapTable() {
               </div>
 
               {/* Bestehende Zeilen */}
-              {shareholders.map((s) => (
-                <div
-                  key={s.id}
-                  className="grid grid-cols-[1fr_120px_100px_32px] items-center px-4 py-2.5 border-b border-[#f1f0ed] hover:bg-[#f8f7f4] transition-colors duration-150 group"
-                  onMouseEnter={() => setHoveredRow(s.id)}
-                  onMouseLeave={() => setHoveredRow(null)}
-                >
-                  <span className="text-sm font-medium text-[#1a1917]">{s.name}</span>
-                  <span className="text-sm font-tabular font-medium text-right text-[#1a1917]">
-                    {formatPercent(s.share_percent)}
-                  </span>
-                  <span className="pl-3">
-                    <span className="rounded-md px-2 py-0.5 text-xs bg-[#f1f0ed] text-[#6b6860]">
-                      {TYPE_LABELS[s.shareholder_type]}
+              {shareholders.map((s) => {
+                const rowValue = hasCapital ? Math.round(s.share_percent * shareCapital!) : null
+                const rowShares = rowValue // 1 € Nennwert = Anzahl Anteile entspricht Wert in €
+                return (
+                  <div
+                    key={s.id}
+                    className={`grid ${gridCols} items-center px-4 py-2.5 border-b border-[#f1f0ed] hover:bg-[#f8f7f4] transition-colors duration-150 group animate-fadeIn`}
+                    onMouseEnter={() => setHoveredRow(s.id)}
+                    onMouseLeave={() => setHoveredRow(null)}
+                  >
+                    <span className="text-sm font-medium text-[#1a1917]">{s.name}</span>
+                    <span className="text-sm font-tabular font-medium text-right text-[#1a1917]">
+                      {formatPercent(s.share_percent)}
                     </span>
-                  </span>
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => deleteShareholder(s.id)}
-                      title="Entfernen"
-                      className={`text-base leading-none transition-colors duration-150 px-1 ${
-                        hoveredRow === s.id
-                          ? 'text-[#ccc9c0] hover:text-[#c0392b]'
-                          : 'text-transparent'
-                      }`}
-                    >
-                      ×
-                    </button>
+                    {hasCapital && (
+                      <>
+                        <span className="text-sm font-tabular text-right text-[#1a1917]">
+                          {formatEur(rowValue!)} €
+                        </span>
+                        <span className="text-sm font-tabular text-right text-[#1a1917]">
+                          {formatEur(rowShares!)}
+                        </span>
+                      </>
+                    )}
+                    <span className="pl-3">
+                      <span className="rounded-md px-2 py-0.5 text-xs bg-[#f1f0ed] text-[#6b6860]">
+                        {TYPE_LABELS[s.shareholder_type]}
+                      </span>
+                    </span>
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => deleteShareholder(s.id)}
+                        title="Entfernen"
+                        className={`text-base leading-none transition-colors duration-150 px-1 ${
+                          hoveredRow === s.id
+                            ? 'text-[#ccc9c0] hover:text-[#c0392b]'
+                            : 'text-transparent'
+                        }`}
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
 
               {/* Draft-Zeile – immer sichtbar */}
-              <div className="grid grid-cols-[1fr_120px_100px_32px] items-center px-4 py-2 bg-[#fafaf9] border-t border-[#e4e2db]">
+              <div className={`grid ${gridCols} items-center px-4 py-2 bg-[#fafaf9] border-t border-[#e4e2db]`}>
                 <input
                   ref={nameRef}
                   value={draft.name}
@@ -217,6 +278,16 @@ export default function GuestCapTable() {
                   />
                   <span className="text-sm text-[#a09e99]">%</span>
                 </div>
+                {hasCapital && (
+                  <>
+                    <span className="text-sm font-tabular text-right text-[#ccc9c0]">
+                      {draftValue !== null ? `${formatEur(draftValue)} €` : '—'}
+                    </span>
+                    <span className="text-sm font-tabular text-right text-[#ccc9c0]">
+                      {draftValue !== null ? formatEur(draftValue) : '—'}
+                    </span>
+                  </>
+                )}
                 <div className="pl-3">
                   <select
                     value={draft.shareholder_type}
@@ -251,9 +322,11 @@ export default function GuestCapTable() {
             {shareholders.length > 0 && (
               <div className="mt-2.5 flex items-center justify-end gap-2">
                 {totalValid ? (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#d8f3dc] text-[#1a3a2a] text-xs font-semibold font-tabular">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#d8f3dc] text-[#1a3a2a] text-xs font-semibold font-tabular shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                     <Check className="h-3.5 w-3.5" />
-                    100 %
+                    {hasCapital
+                      ? `${formatEur(shareCapital!)} € · 100 % ✓`
+                      : '100 %'}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#fef3cd] text-[#b7791f] text-xs font-semibold font-tabular">
@@ -268,15 +341,17 @@ export default function GuestCapTable() {
             )}
           </div>
 
-          {/* CTA Button */}
-          <button
-            onClick={handleSimulateRound}
-            disabled={shareholders.length === 0 || !totalValid}
-            className="w-full mt-6 py-2.5 px-6 bg-[#1a3a2a] text-white rounded-lg text-sm font-medium hover:bg-[#152e22] transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            Finanzierungsrunde simulieren
-            <span className="text-[#86c49d]">→</span>
-          </button>
+          {/* CTA Button – sticky auf Mobile */}
+          <div className="sticky bottom-0 bg-[#f8f7f4]/90 backdrop-blur-sm pt-3 pb-4 -mx-4 px-4 md:static md:bg-transparent md:backdrop-blur-none md:pt-0 md:px-0 md:mx-0">
+            <button
+              onClick={handleSimulateRound}
+              disabled={shareholders.length === 0 || !totalValid}
+              className="w-full py-2.5 px-6 bg-gradient-to-b from-[#1f4a35] to-[#1a3a2a] text-white rounded-lg text-sm font-medium shadow-[0_1px_2px_0_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.08)] hover:from-[#1a3a2a] hover:to-[#152e22] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              Finanzierungsrunde simulieren
+              <span className="text-[#86c49d]">→</span>
+            </button>
+          </div>
 
           {/* Hinweis */}
           <p className="text-center text-xs text-[#a09e99]">

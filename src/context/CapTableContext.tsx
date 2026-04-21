@@ -16,6 +16,7 @@ interface CapTableContextValue {
   // Mutationen
   setCompanyName: (name: string) => void
   setCompany: (company: GuestCompany) => void
+  setShareCapital: (value: number | null) => void
   addShareholder: (s: Omit<GuestShareholder, 'id'>) => void
   updateShareholder: (id: string, updates: Partial<Omit<GuestShareholder, 'id'>>) => void
   deleteShareholder: (id: string) => void
@@ -42,12 +43,21 @@ export function CapTableProvider({ children }: { children: ReactNode }) {
       ...prev,
       company: prev.company
         ? { ...prev.company, name }
-        : { name, legal_form: 'GmbH', share_capital: 25000 },
+        : { name, legal_form: 'GmbH', share_capital: null },
     }))
   }
 
   function setCompany(company: GuestCompany) {
     setState((prev) => ({ ...prev, company }))
+  }
+
+  function setShareCapital(value: number | null) {
+    setState((prev) => ({
+      ...prev,
+      company: prev.company
+        ? { ...prev.company, share_capital: value }
+        : { name: 'Mein Startup', legal_form: 'GmbH', share_capital: value },
+    }))
   }
 
   function addShareholder(s: Omit<GuestShareholder, 'id'>) {
@@ -89,6 +99,7 @@ export function CapTableProvider({ children }: { children: ReactNode }) {
         shareholders: state.shareholders,
         setCompanyName,
         setCompany,
+        setShareCapital,
         addShareholder,
         updateShareholder,
         deleteShareholder,

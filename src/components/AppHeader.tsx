@@ -32,16 +32,16 @@ export default function AppHeader({ children }: AppHeaderProps) {
   }
 
   return (
-    <header className="bg-white border-b border-[#e4e2db]">
+    <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-sm shadow-[0_1px_0_0_rgba(0,0,0,0.06)]">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
         <Link
           to="/"
-          className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-150"
+          className="flex items-center gap-1.5 hover:opacity-80 transition-opacity duration-150"
         >
-          <TrendingUp className="h-5 w-5 text-[#1a3a2a]" />
-          <span className="text-lg font-semibold tracking-tight text-[#1a1917]">
-            mycaptable
+          <TrendingUp className="h-4.5 w-4.5 text-[#1a3a2a]" />
+          <span className="text-base font-semibold tracking-tight">
+            <span className="text-[#1a1917]">my</span><span className="text-[#1a3a2a]">captable</span>
           </span>
         </Link>
 

@@ -11,7 +11,7 @@ export interface GuestShareholder {
 export interface GuestCompany {
   name: string
   legal_form: string
-  share_capital: number
+  share_capital: number | null
 }
 
 export interface GuestState {
