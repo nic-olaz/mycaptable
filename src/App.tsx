@@ -3,16 +3,49 @@ import Dashboard from '@/pages/Dashboard'
 import CapTable from '@/pages/CapTable'
 import RoundCalculator from '@/pages/RoundCalculator'
 import NewCompany from '@/pages/NewCompany'
+import Login from '@/pages/Login'
+import AuthGuard from '@/components/AuthGuard'
+import { Toaster } from '@/components/ui/toaster'
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/company/new" element={<NewCompany />} />
-        <Route path="/company/:id" element={<CapTable />} />
-        <Route path="/company/:id/round" element={<RoundCalculator />} />
+        <Route path="/login" element={<Login />} />
+        <Route
+          path="/"
+          element={
+            <AuthGuard>
+              <Dashboard />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/company/new"
+          element={
+            <AuthGuard>
+              <NewCompany />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/company/:id"
+          element={
+            <AuthGuard>
+              <CapTable />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/company/:id/round"
+          element={
+            <AuthGuard>
+              <RoundCalculator />
+            </AuthGuard>
+          }
+        />
       </Routes>
+      <Toaster />
     </BrowserRouter>
   )
 }

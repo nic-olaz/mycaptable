@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import type { Company, Shareholder } from '@/types'
 import { solveRound, dilute, formatEur, formatPercent, type SolveFor } from '@/lib/calculator'
@@ -16,7 +16,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ArrowLeft, TrendingUp, Calculator } from 'lucide-react'
+import { ArrowLeft, Calculator, CheckCircle } from 'lucide-react'
+import AppHeader from '@/components/AppHeader'
+import { toast } from '@/lib/use-toast'
 
 type FieldName = 'pre_money' | 'investment' | 'investor_percent'
 
@@ -28,9 +30,11 @@ const FIELD_LABELS: Record<FieldName, string> = {
 
 export default function RoundCalculator() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [company, setCompany] = useState<Company | null>(null)
   const [shareholders, setShareholders] = useState<Shareholder[]>([])
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
 
   // Welches Feld wird berechnet (ist deaktiviert)
   const [solveFor, setSolveFor] = useState<SolveFor>('investor_percent')
@@ -110,6 +114,57 @@ export default function RoundCalculator() {
     }
   }
 
+  async function saveRound() {
+    if (!result || !id) return
+    setSaving(true)
+    try {
+      const roundName = `Runde ${new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`
+
+      // Runde einfügen
+      const { data: roundData, error: roundError } = await supabase
+        .from('rounds')
+        .insert({
+          company_id: id,
+          name: roundName,
+          round_type: 'equity',
+          pre_money: result.pre_money,
+          investment: result.investment,
+          investor_percent: result.investor_percent,
+        })
+        .select('id')
+        .single()
+
+      if (roundError) throw roundError
+
+      // Participant einfügen
+      const { error: participantError } = await supabase
+        .from('round_participants')
+        .insert({
+          round_id: roundData.id,
+          investor_name: investorName.trim() || 'Neuer Investor',
+          investment: result.investment,
+          share_percent: result.investor_percent,
+        })
+
+      if (participantError) throw participantError
+
+      toast({
+        title: 'Runde gespeichert',
+        description: `"${roundName}" wurde erfolgreich eingetragen.`,
+      })
+
+      void navigate(`/company/${id}`)
+    } catch (err) {
+      toast({
+        variant: 'destructive',
+        title: 'Fehler beim Speichern',
+        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const dilutedTable = result
     ? dilute(
         shareholders.map((s) => ({ name: s.name, share_percent: s.share_percent })),
@@ -128,13 +183,7 @@ export default function RoundCalculator() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center gap-2">
-          <TrendingUp className="h-6 w-6 text-primary" />
-          <span className="text-xl font-semibold tracking-tight">MyCapTable</span>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="container max-w-4xl py-10">
         <Link
@@ -295,6 +344,18 @@ export default function RoundCalculator() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+
+            {/* Runde übernehmen */}
+            {result && (
+              <Button
+                className="w-full"
+                onClick={() => { void saveRound() }}
+                disabled={saving}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                {saving ? 'Wird gespeichert...' : 'Runde übernehmen'}
+              </Button>
             )}
 
             {/* Dilution Table */}

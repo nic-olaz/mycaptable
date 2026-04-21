@@ -17,6 +17,10 @@ import {
 } from '@/components/ui/table'
 import { ArrowLeft, Plus, TrendingUp } from 'lucide-react'
 import { formatEur, formatPercent } from '@/lib/calculator'
+import AppHeader from '@/components/AppHeader'
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+
+const CHART_COLORS = ['#1e3a5f', '#2e6da4', '#4a9fd4', '#7ec8e3', '#b8dff0', '#e8f4fc']
 
 export default function CapTable() {
   const { id } = useParams<{ id: string }>()
@@ -111,15 +115,7 @@ export default function CapTable() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            <span className="text-xl font-semibold tracking-tight">MyCapTable</span>
-          </div>
-        </div>
-      </header>
+      <AppHeader />
 
       <main className="container py-10">
         <Link
@@ -285,6 +281,56 @@ export default function CapTable() {
             )}
           </CardContent>
         </Card>
+
+        {/* Pie Chart – Anteilsverteilung */}
+        {shareholders.length > 0 && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Anteilsverteilung</CardTitle>
+              <CardDescription>Visualisierung der aktuellen Cap Table</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={320}>
+                <PieChart>
+                  <Pie
+                    data={shareholders.map((s) => ({
+                      name: s.name,
+                      value: parseFloat((s.share_percent * 100).toFixed(2)),
+                    }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={70}
+                    outerRadius={120}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {shareholders.map((_s, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value) => {
+                      const num = typeof value === 'number' ? value : parseFloat(String(value))
+                      return [`${num.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 2 })} %`, 'Anteil'] as [string, string]
+                    }}
+                    contentStyle={{ borderRadius: '8px', fontSize: '13px' }}
+                  />
+                  <Legend
+                    layout="vertical"
+                    align="right"
+                    verticalAlign="middle"
+                    formatter={(value) => (
+                      <span className="text-sm text-foreground">{value}</span>
+                    )}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   )

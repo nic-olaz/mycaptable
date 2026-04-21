@@ -5,8 +5,9 @@ import type { Company } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Building2, Plus, TrendingUp } from 'lucide-react'
+import { Building2, Plus } from 'lucide-react'
 import { formatEur } from '@/lib/calculator'
+import AppHeader from '@/components/AppHeader'
 
 export default function Dashboard() {
   const [companies, setCompanies] = useState<Company[]>([])
@@ -35,21 +36,14 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b">
-        <div className="container flex h-16 items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            <span className="text-xl font-semibold tracking-tight">MyCapTable</span>
-          </div>
-          <Button asChild size="sm">
-            <Link to="/company/new">
-              <Plus className="mr-2 h-4 w-4" />
-              Unternehmen anlegen
-            </Link>
-          </Button>
-        </div>
-      </header>
+      <AppHeader>
+        <Button asChild size="sm">
+          <Link to="/company/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Unternehmen anlegen
+          </Link>
+        </Button>
+      </AppHeader>
 
       {/* Main */}
       <main className="container py-10">
