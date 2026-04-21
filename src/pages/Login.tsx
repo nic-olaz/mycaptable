@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { TrendingUp } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -86,6 +87,17 @@ export default function Login() {
           </CardContent>
         </Card>
       </main>
+
+      <footer className="border-t py-6">
+        <div className="container flex justify-center gap-6 text-xs text-muted-foreground">
+          <Link to="/impressum" className="hover:text-foreground">
+            Impressum
+          </Link>
+          <Link to="/datenschutz" className="hover:text-foreground">
+            Datenschutz
+          </Link>
+        </div>
+      </footer>
     </div>
   )
 }

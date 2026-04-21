@@ -4,6 +4,8 @@ import CapTable from '@/pages/CapTable'
 import RoundCalculator from '@/pages/RoundCalculator'
 import NewCompany from '@/pages/NewCompany'
 import Login from '@/pages/Login'
+import Impressum from '@/pages/Impressum'
+import Datenschutz from '@/pages/Datenschutz'
 import AuthGuard from '@/components/AuthGuard'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -12,6 +14,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/impressum" element={<Impressum />} />
+        <Route path="/datenschutz" element={<Datenschutz />} />
         <Route
           path="/"
           element={
