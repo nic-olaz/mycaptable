@@ -1,5 +1,6 @@
 -- MyCapTable – Initial Schema
 -- Deployt: 2026-04-21
+-- Security Fix: 2026-04-21 – user_id DEFAULT + RLS WITH CHECK auf allen Tabellen
 
 -- companies
 CREATE TABLE IF NOT EXISTS companies (
@@ -9,7 +10,7 @@ CREATE TABLE IF NOT EXISTS companies (
   founded_at      date,
   share_capital   numeric(15,2) NOT NULL,
   currency        text DEFAULT 'EUR',
-  user_id         uuid REFERENCES auth.users(id),
+  user_id         uuid REFERENCES auth.users(id) DEFAULT auth.uid(),
   created_at      timestamptz DEFAULT now(),
   updated_at      timestamptz DEFAULT now()
 );
@@ -56,22 +57,44 @@ ALTER TABLE shareholders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE rounds ENABLE ROW LEVEL SECURITY;
 ALTER TABLE round_participants ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies: nur eigene Daten sehen/bearbeiten
-CREATE POLICY IF NOT EXISTS "Users own companies" ON companies
-  FOR ALL USING (auth.uid() = user_id);
+-- Option A: user_id als DB-Default setzen (Client kann keinen eigenen Wert einschleusen)
+ALTER TABLE companies
+  ALTER COLUMN user_id SET DEFAULT auth.uid();
 
-CREATE POLICY IF NOT EXISTS "Users own shareholders via company" ON shareholders
-  FOR ALL USING (
-    company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
-  );
+-- RLS Policies mit explizitem WITH CHECK (Option B)
+-- companies
+DROP POLICY IF EXISTS "Users own companies" ON companies;
+CREATE POLICY "Users own companies" ON companies
+  FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users own rounds via company" ON rounds
-  FOR ALL USING (
-    company_id IN (SELECT id FROM companies WHERE user_id = auth.uid())
-  );
+-- shareholders
+DROP POLICY IF EXISTS "Users own shareholders via company" ON shareholders;
+CREATE POLICY "Users own shareholders via company" ON shareholders
+  FOR ALL
+  USING (company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()))
+  WITH CHECK (company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()));
 
-CREATE POLICY IF NOT EXISTS "Users own round_participants via round" ON round_participants
-  FOR ALL USING (
+-- rounds
+DROP POLICY IF EXISTS "Users own rounds via company" ON rounds;
+CREATE POLICY "Users own rounds via company" ON rounds
+  FOR ALL
+  USING (company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()))
+  WITH CHECK (company_id IN (SELECT id FROM companies WHERE user_id = auth.uid()));
+
+-- round_participants
+DROP POLICY IF EXISTS "Users own round_participants via round" ON round_participants;
+CREATE POLICY "Users own round_participants via round" ON round_participants
+  FOR ALL
+  USING (
+    round_id IN (
+      SELECT r.id FROM rounds r
+      JOIN companies c ON r.company_id = c.id
+      WHERE c.user_id = auth.uid()
+    )
+  )
+  WITH CHECK (
     round_id IN (
       SELECT r.id FROM rounds r
       JOIN companies c ON r.company_id = c.id
