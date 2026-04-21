@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Check, AlertTriangle } from 'lucide-react'
+import { Check, AlertTriangle, Pencil } from 'lucide-react'
 import { useCapTable } from '@/context/CapTableContext'
 import { formatPercent } from '@/lib/calculator'
 import AppHeader from '@/components/AppHeader'
@@ -8,11 +8,11 @@ import LoginModal from '@/components/LoginModal'
 import type { GuestShareholder } from '@/lib/guestState'
 
 const TYPE_LABELS: Record<GuestShareholder['shareholder_type'], string> = {
-  founder: 'Gründer',
+  founder: 'Founder',
   investor: 'Investor',
-  employee: 'Mitarbeiter',
+  employee: 'Employee',
   advisor: 'Advisor',
-  other: 'Sonstige',
+  other: 'Other',
 }
 
 interface DraftState {
@@ -47,11 +47,12 @@ export default function GuestCapTable() {
   const [nameFocused, setNameFocused] = useState(false)
   const [draft, setDraft] = useState<DraftState>(EMPTY_DRAFT)
   const [hoveredRow, setHoveredRow] = useState<string | null>(null)
+  const [ctaPulse, setCtaPulse] = useState(false)
 
   const nameRef = useRef<HTMLInputElement>(null)
   const percentRef = useRef<HTMLInputElement>(null)
 
-  const companyName = company?.name ?? 'Mein Startup'
+  const companyName = company?.name ?? 'My Startup'
   const shareCapital = company?.share_capital ?? null
   const hasCapital = shareCapital !== null && shareCapital > 0
   const totalPercent = shareholders.reduce((sum, s) => sum + s.share_percent, 0)
@@ -90,6 +91,12 @@ export default function GuestCapTable() {
       share_percent: pct,
       shareholder_type: draft.shareholder_type,
     })
+    // Check if we just hit 100%
+    const newTotal = shareholders.reduce((s, sh) => s + sh.share_percent, 0) + pct
+    if (Math.abs(newTotal - 1) < 0.001) {
+      setCtaPulse(true)
+      setTimeout(() => setCtaPulse(false), 600)
+    }
     setDraft(EMPTY_DRAFT)
     setTimeout(() => nameRef.current?.focus(), 0)
   }
@@ -142,11 +149,27 @@ export default function GuestCapTable() {
       <AppHeader />
       <LoginModal />
 
-      <main className="max-w-xl mx-auto px-4 pt-8 pb-16">
-        <div className="space-y-6">
-          {/* Unternehmensname als Tool-Header */}
+      <main className="max-w-xl mx-auto px-4 pb-16">
+        {/* Value Prop */}
+        <div className="pt-10 pb-6 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1a1917]">
+            Cap table management for founders
+          </h1>
+          <p className="mt-2 text-sm text-[#6b6860] max-w-sm mx-auto leading-relaxed">
+            Build your cap table and simulate funding rounds.
+            Enter two values — we calculate the third.
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-[#a09e99]">
+            <span>✓ Free forever</span>
+            <span>✓ No signup required</span>
+            <span>✓ Works for GmbH</span>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {/* Company name as tool header */}
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 group/name">
               <input
                 type="text"
                 value={nameFocused ? nameInput : companyName}
@@ -157,13 +180,14 @@ export default function GuestCapTable() {
                   if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                   if (e.key === 'Escape') setNameFocused(false)
                 }}
-                className="text-xl font-semibold text-[#1a1917] bg-transparent border-b-2 border-transparent hover:border-[#e4e2db] focus:border-[#1a3a2a] outline-none transition-all duration-150 pb-0.5 w-full max-w-xs"
-                placeholder="Startup-Name"
+                className="text-xl font-semibold text-[#1a1917] bg-transparent border-b-2 border-transparent group-hover/name:border-[#e4e2db] focus:border-[#1a3a2a] outline-none transition-all duration-150 pb-0.5 w-full max-w-xs placeholder:text-[#ccc9c0]"
+                placeholder="Your company name"
               />
+              <Pencil className="h-3.5 w-3.5 text-[#ccc9c0] opacity-0 group-hover/name:opacity-100 transition-opacity duration-150 flex-shrink-0" />
             </div>
-            {/* Stammkapital */}
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-[#a09e99]">Stammkapital</span>
+            {/* Share Capital */}
+            <div className="flex items-center gap-2 mt-2">
+              <span className="text-sm font-medium text-[#6b6860]">Share Capital</span>
               <input
                 type="number"
                 min="1"
@@ -172,10 +196,10 @@ export default function GuestCapTable() {
                 onChange={(e) =>
                   setShareCapital(e.target.value ? parseFloat(e.target.value) : null)
                 }
-                placeholder="25.000"
-                className="w-32 text-sm font-tabular text-[#1a1917] bg-transparent border-b border-transparent hover:border-[#e4e2db] focus:border-[#1a3a2a] outline-none transition-all pb-0.5 placeholder:text-[#ccc9c0]"
+                placeholder="25,000"
+                className="w-28 text-sm font-medium font-tabular text-[#1a1917] bg-transparent border-b border-[#e4e2db] hover:border-[#ccc9c0] focus:border-[#1a3a2a] outline-none transition-all pb-0.5 placeholder:text-[#ccc9c0]"
               />
-              <span className="text-sm text-[#a09e99]">€</span>
+              <span className="text-sm font-medium text-[#6b6860]">€</span>
             </div>
           </div>
 
@@ -188,28 +212,28 @@ export default function GuestCapTable() {
                   Name
                 </span>
                 <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right">
-                  Anteil
+                  Stake
                 </span>
                 {hasCapital && (
                   <>
                     <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right">
-                      Wert
+                      Value
                     </span>
                     <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right">
-                      Anteile
+                      Shares
                     </span>
                   </>
                 )}
                 <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] pl-3">
-                  Typ
+                  Type
                 </span>
                 <span className="w-8" />
               </div>
 
-              {/* Bestehende Zeilen */}
+              {/* Existing rows */}
               {shareholders.map((s) => {
                 const rowValue = hasCapital ? Math.round(s.share_percent * shareCapital!) : null
-                const rowShares = rowValue // 1 € Nennwert = Anzahl Anteile entspricht Wert in €
+                const rowShares = rowValue // 1 € par value = shares count equals value in €
                 return (
                   <div
                     key={s.id}
@@ -239,7 +263,7 @@ export default function GuestCapTable() {
                     <div className="flex justify-end">
                       <button
                         onClick={() => deleteShareholder(s.id)}
-                        title="Entfernen"
+                        title="Remove"
                         className={`text-base leading-none transition-colors duration-150 px-1 ${
                           hoveredRow === s.id
                             ? 'text-[#ccc9c0] hover:text-[#c0392b]'
@@ -253,14 +277,14 @@ export default function GuestCapTable() {
                 )
               })}
 
-              {/* Draft-Zeile – immer sichtbar */}
+              {/* Draft row – always visible */}
               <div className={`grid ${gridCols} items-center px-4 py-2 bg-[#fafaf9] border-t border-[#e4e2db]`}>
                 <input
                   ref={nameRef}
                   value={draft.name}
                   onChange={(e) => setDraft((p) => ({ ...p, name: e.target.value }))}
                   onKeyDown={handleNameKeyDown}
-                  placeholder="Name eingeben..."
+                  placeholder="Add name..."
                   className="text-sm text-[#1a1917] bg-transparent outline-none placeholder:text-[#ccc9c0] w-full"
                 />
                 <div className="flex items-center gap-1 justify-end">
@@ -273,6 +297,7 @@ export default function GuestCapTable() {
                     value={draft.share_percent}
                     onChange={(e) => setDraft((p) => ({ ...p, share_percent: e.target.value }))}
                     onKeyDown={handlePercentKeyDown}
+                    onFocus={(e) => e.target.select()}
                     placeholder="0"
                     className="w-14 text-sm font-tabular text-right bg-transparent outline-none placeholder:text-[#ccc9c0] text-[#1a1917]"
                   />
@@ -299,17 +324,17 @@ export default function GuestCapTable() {
                     }
                     className="text-xs text-[#6b6860] bg-transparent outline-none border-none cursor-pointer w-full"
                   >
-                    <option value="founder">Gründer</option>
+                    <option value="founder">Founder</option>
                     <option value="investor">Investor</option>
-                    <option value="employee">Mitarbeiter</option>
+                    <option value="employee">Employee</option>
                     <option value="advisor">Advisor</option>
-                    <option value="other">Sonstige</option>
+                    <option value="other">Other</option>
                   </select>
                 </div>
                 <div className="flex justify-end">
                   <button
                     onClick={submitDraft}
-                    title="Hinzufügen (Enter)"
+                    title="Add (Enter)"
                     className="text-[#ccc9c0] hover:text-[#1a3a2a] transition-colors duration-150 text-sm font-medium"
                   >
                     ↵
@@ -318,7 +343,7 @@ export default function GuestCapTable() {
               </div>
             </div>
 
-            {/* Summen-Zeile */}
+            {/* Total row */}
             {shareholders.length > 0 && (
               <div className="mt-2.5 flex items-center justify-end gap-2">
                 {totalValid ? (
@@ -333,34 +358,33 @@ export default function GuestCapTable() {
                     <AlertTriangle className="h-3.5 w-3.5" />
                     {formatPercent(totalPercent)} ·{' '}
                     {missing > 0
-                      ? `${missing.toFixed(2).replace('.', ',')} % fehlen`
-                      : `${Math.abs(missing).toFixed(2).replace('.', ',')} % zu viel`}
+                      ? `${missing.toFixed(2).replace('.', ',')} % missing`
+                      : `${Math.abs(missing).toFixed(2).replace('.', ',')} % over 100%`}
                   </span>
                 )}
               </div>
             )}
           </div>
 
-          {/* CTA Button – sticky auf Mobile */}
+          {/* CTA Button – sticky on mobile */}
           <div className="sticky bottom-0 bg-[#f8f7f4]/90 backdrop-blur-sm pt-3 pb-4 -mx-4 px-4 md:static md:bg-transparent md:backdrop-blur-none md:pt-0 md:px-0 md:mx-0">
             <button
               onClick={handleSimulateRound}
               disabled={shareholders.length === 0 || !totalValid}
-              className="w-full py-2.5 px-6 bg-gradient-to-b from-[#1f4a35] to-[#1a3a2a] text-white rounded-lg text-sm font-medium shadow-[0_1px_2px_0_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.08)] hover:from-[#1a3a2a] hover:to-[#152e22] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className={`w-full py-2.5 px-6 bg-gradient-to-b from-[#1f4a35] to-[#1a3a2a] text-white rounded-lg text-sm font-medium shadow-[0_1px_2px_0_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.08)] hover:from-[#1a3a2a] hover:to-[#152e22] transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${ctaPulse ? 'animate-pulse-once' : ''}`}
             >
-              Finanzierungsrunde simulieren
-              <span className="text-[#86c49d]">→</span>
+              Simulate funding round →
             </button>
           </div>
 
-          {/* Hinweis */}
+          {/* Note */}
           <p className="text-center text-xs text-[#a09e99]">
-            Wird im Browser gespeichert ·{' '}
+            Saved in your browser ·{' '}
             <button
               onClick={openLoginModal}
               className="underline underline-offset-2 hover:text-[#1a1917] transition-colors duration-150"
             >
-              Konto erstellen
+              Create account
             </button>
           </p>
         </div>

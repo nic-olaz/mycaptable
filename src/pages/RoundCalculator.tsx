@@ -11,15 +11,15 @@ import { useCapTable } from '@/context/CapTableContext'
 type FieldName = 'pre_money' | 'investment' | 'investor_percent'
 
 const FIELD_LABELS: Record<FieldName, string> = {
-  pre_money: 'Pre-Money Bewertung',
+  pre_money: 'Pre-Money Valuation',
   investment: 'Investment',
-  investor_percent: 'Investor-Anteil',
+  investor_percent: 'Investor Stake',
 }
 
 const FIELD_SOLVE_LABELS: Record<FieldName, string> = {
-  pre_money: 'Pre-Money Bewertung',
+  pre_money: 'Pre-Money Valuation',
   investment: 'Investment',
-  investor_percent: 'Investor-Anteil',
+  investor_percent: 'Investor Stake',
 }
 
 const FIELD_PREFIX: Record<FieldName, string> = {
@@ -96,7 +96,7 @@ export default function RoundCalculator() {
       })
       setResult(res)
     } catch (err) {
-      setCalcError(err instanceof Error ? err.message : 'Berechnungsfehler')
+      setCalcError(err instanceof Error ? err.message : 'Calculation error')
     }
   }
 
@@ -108,7 +108,7 @@ export default function RoundCalculator() {
 
     setSaving(true)
     try {
-      const roundName = `Runde ${new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`
+      const roundName = `Round ${new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}`
 
       const { data: companies } = await supabase
         .from('companies')
@@ -122,8 +122,8 @@ export default function RoundCalculator() {
       if (!companyId) {
         toast({
           variant: 'destructive',
-          title: 'Kein Unternehmen gefunden',
-          description: 'Speichere zuerst deinen Cap Table.',
+          title: 'No company found',
+          description: 'Save your cap table first.',
         })
         setSaving(false)
         return
@@ -148,7 +148,7 @@ export default function RoundCalculator() {
         .from('round_participants')
         .insert({
           round_id: roundData.id,
-          investor_name: investorName.trim() || 'Neuer Investor',
+          investor_name: investorName.trim() || 'New Investor',
           investment: result.investment,
           share_percent: result.investor_percent,
         })
@@ -156,16 +156,16 @@ export default function RoundCalculator() {
       if (participantError) throw participantError
 
       toast({
-        title: 'Runde gespeichert',
-        description: `"${roundName}" wurde erfolgreich eingetragen.`,
+        title: 'Round saved',
+        description: `"${roundName}" has been added successfully.`,
       })
 
       void navigate('/dashboard')
     } catch (err) {
       toast({
         variant: 'destructive',
-        title: 'Fehler beim Speichern',
-        description: err instanceof Error ? err.message : 'Unbekannter Fehler',
+        title: 'Error saving round',
+        description: err instanceof Error ? err.message : 'Unknown error',
       })
     } finally {
       setSaving(false)
@@ -181,11 +181,10 @@ export default function RoundCalculator() {
     ? dilute(
         shareholders,
         result.investor_percent,
-        investorName.trim() || 'Neuer Investor',
+        investorName.trim() || 'New Investor',
       )
     : null
 
-  // Berechne Diff pro Gesellschafter
   function getDiff(entry: { name: string; share_percent: number; diluted_from: number }) {
     if (entry.diluted_from === 0) return null
     return entry.share_percent - entry.diluted_from
@@ -211,17 +210,17 @@ export default function RoundCalculator() {
         {/* Heading */}
         <div className="mb-10">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-2">
-            Finanzierungsrunde berechnen
+            Simulate funding round
           </p>
           <h1 className="text-4xl font-semibold tracking-tight text-[#1a1917]">
-            Gib zwei Werte ein,<br />den dritten berechnen wir.
+            Enter two values,<br />we calculate the third.
           </h1>
         </div>
 
-        {/* Was soll berechnet werden */}
+        {/* What to calculate */}
         <div className="bg-white border border-[#e4e2db] rounded-xl p-5 mb-6">
           <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-3">
-            Was soll berechnet werden?
+            What should we calculate?
           </p>
           <div className="flex flex-col gap-2">
             {(['pre_money', 'investment', 'investor_percent'] as const).map((field) => (
@@ -260,7 +259,7 @@ export default function RoundCalculator() {
           </div>
         </div>
 
-        {/* Input-Felder */}
+        {/* Input fields */}
         <div className="bg-white border border-[#e4e2db] rounded-xl p-5 mb-6 space-y-5">
           {(['pre_money', 'investment', 'investor_percent'] as const).map((field) => {
             const isDisabled = solveFor === field
@@ -278,7 +277,7 @@ export default function RoundCalculator() {
                   {isDisabled && (
                     <span className="flex items-center gap-1 text-xs text-[#a09e99]">
                       <Calculator className="h-3 w-3" />
-                      wird berechnet
+                      calculated
                     </span>
                   )}
                 </div>
@@ -302,8 +301,8 @@ export default function RoundCalculator() {
                         : field === 'investor_percent'
                           ? '20'
                           : field === 'investment'
-                            ? '1.000.000'
-                            : '4.000.000'
+                            ? '1,000,000'
+                            : '4,000,000'
                     }
                     className={`w-full pl-8 pr-4 py-2.5 text-sm border-2 rounded-lg font-tabular text-[#1a1917] placeholder:text-[#a09e99] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 transition-all duration-150 ${
                       isDisabled
@@ -322,14 +321,14 @@ export default function RoundCalculator() {
               htmlFor="investor-name"
               className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] block mb-1.5"
             >
-              Name des Investors
+              Investor name
             </label>
             <input
               id="investor-name"
               type="text"
               value={investorName}
               onChange={(e) => setInvestorName(e.target.value)}
-              placeholder="z.B. VC Fund Alpha (optional)"
+              placeholder="e.g. VC Fund Alpha (optional)"
               className="w-full px-3 py-2.5 text-sm border border-[#e4e2db] rounded-lg bg-white text-[#1a1917] placeholder:text-[#a09e99] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 transition-colors"
             />
           </div>
@@ -344,30 +343,30 @@ export default function RoundCalculator() {
             onClick={calculate}
             className="w-full py-3 px-6 bg-[#1a3a2a] text-white rounded-lg text-sm font-medium hover:bg-[#152e22] transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2"
           >
-            Berechnen
+            Calculate
           </button>
         </div>
 
-        {/* Ergebnis */}
+        {/* Result */}
         {result ? (
           <div className="space-y-6">
             {/* Separator */}
             <div className="flex items-center gap-3">
               <div className="flex-1 border-t border-[#e4e2db]" />
-              <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99]">Ergebnis</span>
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99]">Result</span>
               <div className="flex-1 border-t border-[#e4e2db]" />
             </div>
 
             {/* Post-Money Highlight */}
             <div className="bg-white border border-[#e4e2db] rounded-xl p-6">
               <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-2">
-                Post-Money Bewertung
+                Post-Money Valuation
               </p>
               <p className="text-5xl font-bold font-tabular text-[#1a3a2a] tracking-tight">
                 {formatEur(result.post_money)}
               </p>
 
-              {/* Kennzahlen */}
+              {/* Key metrics */}
               <div className="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-[#f1f0ed]">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] mb-1">
@@ -387,7 +386,7 @@ export default function RoundCalculator() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] mb-1">
-                    Investor-Anteil
+                    Investor Stake
                   </p>
                   <p className="text-base font-semibold font-tabular text-[#1a1917]">
                     {formatPercent(result.investor_percent)}
@@ -396,12 +395,12 @@ export default function RoundCalculator() {
               </div>
             </div>
 
-            {/* Verwässerungs-Tabelle */}
+            {/* Diluted Cap Table */}
             {dilutedTable && dilutedTable.length > 0 && (
               <div className="bg-white border border-[#e4e2db] rounded-xl overflow-hidden">
                 <div className="px-5 py-3 border-b border-[#e4e2db]">
                   <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860]">
-                    Verwässerter Cap Table
+                    Diluted Cap Table
                   </p>
                 </div>
 
@@ -411,13 +410,13 @@ export default function RoundCalculator() {
                     Name
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-20">
-                    Vorher
+                    Before
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-20">
-                    Nachher
+                    After
                   </span>
                   <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-16">
-                    Diff
+                    Change
                   </span>
                 </div>
 
@@ -435,7 +434,7 @@ export default function RoundCalculator() {
                         <span className="text-sm font-medium text-[#1a1917]">{entry.name}</span>
                         {isNew && (
                           <span className="px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-[#d8f3dc] text-[#1a3a2a] rounded">
-                            neu
+                            new
                           </span>
                         )}
                       </div>
@@ -471,10 +470,10 @@ export default function RoundCalculator() {
               className="w-full py-3 px-6 border border-[#1a3a2a] text-[#1a3a2a] rounded-lg text-sm font-medium hover:bg-[#1a3a2a] hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2 disabled:opacity-50"
             >
               {saving
-                ? 'Wird gespeichert...'
+                ? 'Saving...'
                 : userId
-                  ? 'Runde speichern'
-                  : 'Anmelden & Runde speichern'}
+                  ? 'Save round'
+                  : 'Sign in & save round'}
             </button>
           </div>
         ) : (
@@ -482,11 +481,11 @@ export default function RoundCalculator() {
           <div className="flex flex-col items-center justify-center gap-3 py-14 text-center border border-dashed border-[#ccc9c0] rounded-xl">
             <Calculator className="h-8 w-8 text-[#ccc9c0]" />
             <p className="text-sm text-[#a09e99]">
-              Gib Werte ein und klicke Berechnen
+              Enter values and click Calculate
             </p>
             {shareholders.length === 0 && (
               <p className="text-xs text-[#a09e99]">
-                Verwässerung wird angezeigt sobald Gesellschafter eingetragen sind
+                Dilution will show once shareholders are added
               </p>
             )}
           </div>
