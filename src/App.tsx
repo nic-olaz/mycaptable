@@ -6,6 +6,7 @@ import NewCompany from '@/pages/NewCompany'
 import Login from '@/pages/Login'
 import Impressum from '@/pages/Impressum'
 import Datenschutz from '@/pages/Datenschutz'
+import Account from '@/pages/Account'
 import AuthGuard from '@/components/AuthGuard'
 import { Toaster } from '@/components/ui/toaster'
 
@@ -45,6 +46,14 @@ function App() {
           element={
             <AuthGuard>
               <RoundCalculator />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/account"
+          element={
+            <AuthGuard>
+              <Account />
             </AuthGuard>
           }
         />

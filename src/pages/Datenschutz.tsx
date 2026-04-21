@@ -159,7 +159,15 @@ export default function Datenschutz() {
               <li>Widerspruch gegen die Verarbeitung (Art. 21 DSGVO)</li>
             </ul>
             <p className="mt-2">
-              Zur Ausübung deiner Rechte wende dich per E-Mail an:{' '}
+              Du kannst dein Konto und alle damit verbundenen Daten jederzeit direkt
+              in der Anwendung unter{' '}
+              <Link to="/account" className="text-primary hover:underline">
+                Konto
+              </Link>
+              {' '}selbst löschen (Art. 17 DSGVO – Recht auf Löschung).
+            </p>
+            <p className="mt-2">
+              Zur Ausübung weiterer Rechte wende dich per E-Mail an:{' '}
               <a
                 href="mailto:nicolas.meibohm@gmail.com"
                 className="text-primary hover:underline"

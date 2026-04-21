@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { TrendingUp, LogOut } from 'lucide-react'
+import { TrendingUp, LogOut, UserCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { signOut } from '@/lib/auth'
 
@@ -26,6 +26,17 @@ export default function AppHeader({ children }: AppHeaderProps) {
         </div>
         <div className="flex items-center gap-2">
           {children}
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Link to="/account">
+              <UserCircle className="mr-2 h-4 w-4" />
+              Konto
+            </Link>
+          </Button>
           <Button
             variant="ghost"
             size="sm"
