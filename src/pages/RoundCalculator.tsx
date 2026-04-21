@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
-import type { Company, Shareholder } from '@/types'
 import { solveRound, dilute, formatEur, formatPercent, type SolveFor } from '@/lib/calculator'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -18,7 +17,9 @@ import {
 } from '@/components/ui/table'
 import { ArrowLeft, Calculator, CheckCircle } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
+import LoginModal from '@/components/LoginModal'
 import { toast } from '@/lib/use-toast'
+import { useCapTable } from '@/context/CapTableContext'
 
 type FieldName = 'pre_money' | 'investment' | 'investor_percent'
 
@@ -29,11 +30,11 @@ const FIELD_LABELS: Record<FieldName, string> = {
 }
 
 export default function RoundCalculator() {
-  const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const [company, setCompany] = useState<Company | null>(null)
-  const [shareholders, setShareholders] = useState<Shareholder[]>([])
-  const [loading, setLoading] = useState(true)
+  const { shareholders: guestShareholders, openLoginModal } = useCapTable()
+
+  // Prüfen ob User eingeloggt ist
+  const [userId, setUserId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   // Welches Feld wird berechnet (ist deaktiviert)
@@ -57,28 +58,18 @@ export default function RoundCalculator() {
   const [investorName, setInvestorName] = useState('')
 
   useEffect(() => {
-    if (!id) return
-    void fetchData()
-  }, [id])
+    void supabase.auth.getSession().then(({ data }) => {
+      setUserId(data.session?.user.id ?? null)
+    })
 
-  async function fetchData() {
-    try {
-      const [companyRes, shareholdersRes] = await Promise.all([
-        supabase.from('companies').select('*').eq('id', id!).single(),
-        supabase
-          .from('shareholders')
-          .select('*')
-          .eq('company_id', id!)
-          .order('share_percent', { ascending: false }),
-      ])
-      if (companyRes.error) throw companyRes.error
-      if (shareholdersRes.error) throw shareholdersRes.error
-      setCompany(companyRes.data)
-      setShareholders(shareholdersRes.data ?? [])
-    } finally {
-      setLoading(false)
-    }
-  }
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user.id ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   function handleFieldChange(field: FieldName, value: string) {
     setFields((prev) => ({ ...prev, [field]: value }))
@@ -115,16 +106,42 @@ export default function RoundCalculator() {
   }
 
   async function saveRound() {
-    if (!result || !id) return
+    if (!result || !userId) {
+      // Nicht eingeloggt → Login-Modal öffnen
+      openLoginModal()
+      return
+    }
+
     setSaving(true)
     try {
       const roundName = `Runde ${new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`
 
-      // Runde einfügen
+      // Zuerst eine Company aus dem Guest State finden oder eine neue anlegen
+      // (Falls der User bereits eingeloggt ist, gibt es möglicherweise schon Unternehmen im Dashboard)
+      // Für den einfachen Fall: wir speichern auf das erste Company des Users
+      const { data: companies } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      const companyId = companies?.[0]?.id as string | undefined
+
+      if (!companyId) {
+        toast({
+          variant: 'destructive',
+          title: 'Kein Unternehmen gefunden',
+          description: 'Speichere zuerst deinen Cap Table.',
+        })
+        setSaving(false)
+        return
+      }
+
       const { data: roundData, error: roundError } = await supabase
         .from('rounds')
         .insert({
-          company_id: id,
+          company_id: companyId,
           name: roundName,
           round_type: 'equity',
           pre_money: result.pre_money,
@@ -136,7 +153,6 @@ export default function RoundCalculator() {
 
       if (roundError) throw roundError
 
-      // Participant einfügen
       const { error: participantError } = await supabase
         .from('round_participants')
         .insert({
@@ -153,7 +169,7 @@ export default function RoundCalculator() {
         description: `"${roundName}" wurde erfolgreich eingetragen.`,
       })
 
-      void navigate(`/company/${id}`)
+      void navigate('/dashboard')
     } catch (err) {
       toast({
         variant: 'destructive',
@@ -165,33 +181,32 @@ export default function RoundCalculator() {
     }
   }
 
+  // Gesellschafter aus dem Guest Context (kein Supabase-Fetch mehr nötig)
+  const shareholders = guestShareholders.map((s) => ({
+    name: s.name,
+    share_percent: s.share_percent,
+  }))
+
   const dilutedTable = result
     ? dilute(
-        shareholders.map((s) => ({ name: s.name, share_percent: s.share_percent })),
+        shareholders,
         result.investor_percent,
         investorName.trim() || 'Neuer Investor',
       )
     : null
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        Lade Daten...
-      </div>
-    )
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <AppHeader />
+      <LoginModal />
 
       <main className="container max-w-4xl py-10">
         <Link
-          to={`/company/${id}`}
+          to="/"
           className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {company?.name ?? 'Cap Table'}
+          Cap Table
         </Link>
 
         <div className="mb-8">
@@ -354,7 +369,11 @@ export default function RoundCalculator() {
                 disabled={saving}
               >
                 <CheckCircle className="mr-2 h-4 w-4" />
-                {saving ? 'Wird gespeichert...' : 'Runde übernehmen'}
+                {saving
+                  ? 'Wird gespeichert...'
+                  : userId
+                    ? 'Runde übernehmen'
+                    : 'Anmelden & Runde speichern'}
               </Button>
             )}
 
@@ -406,6 +425,11 @@ export default function RoundCalculator() {
                 <div>
                   <Calculator className="mx-auto mb-2 h-8 w-8 opacity-40" />
                   <p className="text-sm">Gib Werte ein und klicke Berechnen</p>
+                  {shareholders.length === 0 && (
+                    <p className="mt-1 text-xs">
+                      Verwässerung wird angezeigt sobald Gesellschafter eingetragen sind
+                    </p>
+                  )}
                 </div>
               </div>
             )}
