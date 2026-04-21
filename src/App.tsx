@@ -17,58 +17,60 @@ function App() {
   return (
     <BrowserRouter>
       <CapTableProvider>
-        <Routes>
-          {/* Öffentliche Routen – kein Login nötig */}
-          <Route path="/" element={<GuestCapTable />} />
-          <Route path="/round" element={<RoundCalculator />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/impressum" element={<Impressum />} />
-          <Route path="/datenschutz" element={<Datenschutz />} />
+        <div className="min-h-screen bg-[#f8f7f4]">
+          <Routes>
+            {/* Öffentliche Routen – kein Login nötig */}
+            <Route path="/" element={<GuestCapTable />} />
+            <Route path="/round" element={<RoundCalculator />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/impressum" element={<Impressum />} />
+            <Route path="/datenschutz" element={<Datenschutz />} />
 
-          {/* Geschützte Routen – Login erforderlich */}
-          <Route
-            path="/dashboard"
-            element={
-              <AuthGuard>
-                <Dashboard />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/company/new"
-            element={
-              <AuthGuard>
-                <NewCompany />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/company/:id"
-            element={
-              <AuthGuard>
-                <CapTable />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/company/:id/round"
-            element={
-              <AuthGuard>
-                <RoundCalculator />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/account"
-            element={
-              <AuthGuard>
-                <Account />
-              </AuthGuard>
-            }
-          />
-        </Routes>
-        <Toaster />
+            {/* Geschützte Routen – Login erforderlich */}
+            <Route
+              path="/dashboard"
+              element={
+                <AuthGuard>
+                  <Dashboard />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/company/new"
+              element={
+                <AuthGuard>
+                  <NewCompany />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/company/:id"
+              element={
+                <AuthGuard>
+                  <CapTable />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/company/:id/round"
+              element={
+                <AuthGuard>
+                  <RoundCalculator />
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/account"
+              element={
+                <AuthGuard>
+                  <Account />
+                </AuthGuard>
+              }
+            />
+          </Routes>
+          <Toaster />
+        </div>
       </CapTableProvider>
     </BrowserRouter>
   )

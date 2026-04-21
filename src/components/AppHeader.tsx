@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { TrendingUp, LogOut, UserCircle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { TrendingUp, LogOut, UserCircle, LayoutDashboard } from 'lucide-react'
 import { signOut } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 
@@ -33,62 +32,57 @@ export default function AppHeader({ children }: AppHeaderProps) {
   }
 
   return (
-    <header className="border-b">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <TrendingUp className="h-6 w-6 text-primary" />
-            <span className="text-xl font-semibold tracking-tight">MyCapTable</span>
-          </Link>
-        </div>
-        <div className="flex items-center gap-2">
+    <header className="bg-white border-b border-[#e4e2db]">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        {/* Logo */}
+        <Link
+          to="/"
+          className="flex items-center gap-2 hover:opacity-80 transition-opacity duration-150"
+        >
+          <TrendingUp className="h-5 w-5 text-[#1a3a2a]" />
+          <span className="text-lg font-semibold tracking-tight text-[#1a1917]">
+            mycaptable
+          </span>
+        </Link>
+
+        {/* Navigation rechts */}
+        <div className="flex items-center gap-1">
           {children}
 
           {isLoggedIn === true && (
             <>
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="text-muted-foreground hover:text-foreground"
+              <Link
+                to="/dashboard"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#6b6860] hover:text-[#1a1917] rounded-md hover:bg-[#f1f0ed] transition-colors duration-150"
               >
-                <Link to="/dashboard">Mein Dashboard</Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="text-muted-foreground hover:text-foreground"
+                <LayoutDashboard className="h-4 w-4" />
+                Dashboard
+              </Link>
+              <Link
+                to="/account"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#6b6860] hover:text-[#1a1917] rounded-md hover:bg-[#f1f0ed] transition-colors duration-150"
               >
-                <Link to="/account">
-                  <UserCircle className="mr-2 h-4 w-4" />
-                  Konto
-                </Link>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
+                <UserCircle className="h-4 w-4" />
+                Konto
+              </Link>
+              <button
                 onClick={() => { void handleLogout() }}
-                className="text-muted-foreground hover:text-foreground"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-[#6b6860] hover:text-[#1a1917] rounded-md hover:bg-[#f1f0ed] transition-colors duration-150"
               >
-                <LogOut className="mr-2 h-4 w-4" />
+                <LogOut className="h-4 w-4" />
                 Abmelden
-              </Button>
+              </button>
             </>
           )}
 
           {isLoggedIn === false && (
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="text-muted-foreground hover:text-foreground text-xs"
+            <Link
+              to="/login"
+              className="px-3 py-1.5 text-sm text-[#6b6860] hover:text-[#1a1917] rounded-md hover:bg-[#f1f0ed] transition-colors duration-150"
             >
-              <Link to="/login">Anmelden</Link>
-            </Button>
+              Anmelden
+            </Link>
           )}
-
-          {/* isLoggedIn === null: Session wird noch geprüft, nichts rendern */}
         </div>
       </div>
     </header>

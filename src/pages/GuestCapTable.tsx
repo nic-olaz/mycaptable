@@ -1,19 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Plus, Trash2, TrendingUp, Save, PencilLine, Check, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Plus, Trash2, TrendingUp, Check, AlertTriangle } from 'lucide-react'
 import { useCapTable } from '@/context/CapTableContext'
 import { formatPercent } from '@/lib/calculator'
 import AppHeader from '@/components/AppHeader'
@@ -26,6 +13,14 @@ const TYPE_LABELS: Record<GuestShareholder['shareholder_type'], string> = {
   employee: 'Mitarbeiter',
   advisor: 'Advisor',
   other: 'Sonstige',
+}
+
+const TYPE_ICONS: Record<GuestShareholder['shareholder_type'], string> = {
+  founder: '👤',
+  investor: '💼',
+  employee: '👥',
+  advisor: '🎯',
+  other: '•',
 }
 
 interface NewShareholderForm {
@@ -53,29 +48,26 @@ export default function GuestCapTable() {
     openLoginModal,
   } = useCapTable()
 
-  const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
+  const [nameFocused, setNameFocused] = useState(false)
   const [showAddForm, setShowAddForm] = useState(false)
   const [form, setForm] = useState<NewShareholderForm>(EMPTY_FORM)
 
   const companyName = company?.name ?? 'Mein Startup'
   const totalPercent = shareholders.reduce((sum, s) => sum + s.share_percent, 0)
   const totalValid = Math.abs(totalPercent - 1) < 0.001
+  const missing = Math.round((1 - totalPercent) * 10000) / 100
 
-  function startEditName() {
-    setNameInput(companyName)
-    setEditingName(true)
-  }
-
-  function confirmEditName() {
+  function handleNameBlur() {
     if (nameInput.trim()) {
       setCompanyName(nameInput.trim())
     }
-    setEditingName(false)
+    setNameFocused(false)
   }
 
-  function cancelEditName() {
-    setEditingName(false)
+  function handleNameFocus() {
+    setNameInput(companyName)
+    setNameFocused(true)
   }
 
   function handleAddShareholder(e: React.FormEvent) {
@@ -96,250 +88,246 @@ export default function GuestCapTable() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f8f7f4]">
       <AppHeader />
       <LoginModal />
 
-      <main className="container py-10">
-        {/* Unternehmensname – inline editierbar */}
-        <div className="mb-8">
-          {editingName ? (
-            <div className="flex items-center gap-2">
-              <Input
-                autoFocus
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') confirmEditName()
-                  if (e.key === 'Escape') cancelEditName()
-                }}
-                className="text-3xl font-semibold h-auto py-1 w-auto max-w-md tracking-tight border-0 border-b border-primary rounded-none focus-visible:ring-0 px-0"
-              />
-              <Button size="icon" variant="ghost" onClick={confirmEditName} className="h-8 w-8">
-                <Check className="h-4 w-4 text-primary" />
-              </Button>
-              <Button size="icon" variant="ghost" onClick={cancelEditName} className="h-8 w-8">
-                <X className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 group">
-              <h1 className="text-3xl font-semibold tracking-tight">{companyName}</h1>
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={startEditName}
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Name bearbeiten"
-              >
-                <PencilLine className="h-3.5 w-3.5 text-muted-foreground" />
-              </Button>
-            </div>
-          )}
-          <p className="mt-1 text-sm text-muted-foreground">
-            Cap Table – keine Anmeldung nötig. Speichere wenn du fertig bist.
+      <main className="max-w-2xl mx-auto px-4 pb-16">
+        {/* Mini-Hero */}
+        <div className="mt-16 mb-12 text-center">
+          <h1 className="text-4xl font-semibold tracking-tight text-[#1a1917]">
+            Simuliere deine Finanzierungsrunde
+          </h1>
+          <p className="mt-3 text-base text-[#6b6860] leading-relaxed max-w-lg mx-auto">
+            Gib deinen Cap Table ein und berechne, wie viel du bei welcher
+            Bewertung abgibst – ohne Anmeldung.
           </p>
         </div>
 
-        {/* Cap Table Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle>Gesellschafter</CardTitle>
-              <CardDescription>
-                {shareholders.length === 0
-                  ? 'Noch keine Gesellschafter – füge den ersten hinzu'
-                  : `${shareholders.length} Gesellschafter · Gesamt ${formatPercent(totalPercent)}`}
-                {shareholders.length > 0 && !totalValid && (
-                  <span className="ml-2 text-amber-600 font-medium">
-                    (Summe muss 100 % ergeben)
+        {/* Editor */}
+        <div className="space-y-6">
+          {/* Unternehmensname */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-2">
+              Unternehmen
+            </p>
+            <input
+              type="text"
+              value={nameFocused ? nameInput : companyName}
+              onFocus={handleNameFocus}
+              onBlur={handleNameBlur}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                if (e.key === 'Escape') {
+                  setNameFocused(false)
+                }
+              }}
+              className="w-full text-xl font-medium text-[#1a1917] bg-transparent border border-transparent rounded-lg px-3 py-2 -mx-3 hover:border-[#e4e2db] focus:border-[#1a3a2a] focus:bg-white outline-none transition-all duration-150 placeholder:text-[#a09e99]"
+              placeholder="Mein Startup GmbH"
+            />
+          </div>
+
+          {/* Gesellschafter-Tabelle */}
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-2">
+              Gesellschafter
+            </p>
+
+            <div className="bg-white border border-[#e4e2db] rounded-xl overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-0 border-b border-[#e4e2db] px-4 py-2.5">
+                <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99]">
+                  Name
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-24">
+                  Anteil
+                </span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] w-24 text-center">
+                  Typ
+                </span>
+                <span className="w-8" />
+              </div>
+
+              {/* Rows */}
+              {shareholders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
+                  <TrendingUp className="h-8 w-8 text-[#ccc9c0]" />
+                  <p className="text-sm text-[#a09e99]">
+                    Noch keine Gesellschafter – füge den ersten hinzu
+                  </p>
+                </div>
+              ) : (
+                shareholders.map((s) => (
+                  <div
+                    key={s.id}
+                    className="grid grid-cols-[1fr_auto_auto_auto] gap-0 items-center px-4 py-3 border-b border-[#f1f0ed] hover:bg-[#f8f7f4] transition-colors duration-150 group"
+                  >
+                    <span className="text-sm font-medium text-[#1a1917]">{s.name}</span>
+                    <span className="text-sm font-tabular text-right text-[#1a1917] w-24">
+                      {formatPercent(s.share_percent)}
+                    </span>
+                    <span className="text-sm text-center w-24 text-[#6b6860]">
+                      {TYPE_ICONS[s.shareholder_type]}{' '}
+                      <span className="text-xs">{TYPE_LABELS[s.shareholder_type]}</span>
+                    </span>
+                    <div className="w-8 flex justify-end">
+                      <button
+                        onClick={() => deleteShareholder(s.id)}
+                        title="Entfernen"
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded text-[#a09e99] hover:text-[#c0392b] hover:bg-[#fce8e6] transition-all duration-150"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+
+              {/* Add-Form */}
+              {showAddForm && (
+                <div className="border-t border-[#e4e2db] bg-[#f8f7f4] p-4">
+                  <form onSubmit={handleAddShareholder} className="grid gap-3 sm:grid-cols-4">
+                    <div className="sm:col-span-2">
+                      <label className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] block mb-1.5">
+                        Name
+                      </label>
+                      <input
+                        type="text"
+                        value={form.name}
+                        onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                        placeholder="Max Mustermann"
+                        required
+                        autoFocus
+                        className="w-full px-3 py-2 text-sm border border-[#e4e2db] rounded-lg bg-white text-[#1a1917] placeholder:text-[#a09e99] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] block mb-1.5">
+                        Anteil %
+                      </label>
+                      <input
+                        type="number"
+                        min="0.01"
+                        max="100"
+                        step="0.01"
+                        value={form.share_percent}
+                        onChange={(e) => setForm((p) => ({ ...p, share_percent: e.target.value }))}
+                        placeholder="50"
+                        required
+                        className="w-full px-3 py-2 text-sm border border-[#e4e2db] rounded-lg bg-white text-[#1a1917] placeholder:text-[#a09e99] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 font-tabular transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] block mb-1.5">
+                        Typ
+                      </label>
+                      <select
+                        value={form.shareholder_type}
+                        onChange={(e) =>
+                          setForm((p) => ({
+                            ...p,
+                            shareholder_type: e.target.value as GuestShareholder['shareholder_type'],
+                          }))
+                        }
+                        className="w-full px-3 py-2 text-sm border border-[#e4e2db] rounded-lg bg-white text-[#1a1917] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 transition-colors"
+                      >
+                        <option value="founder">Gründer</option>
+                        <option value="investor">Investor</option>
+                        <option value="employee">Mitarbeiter</option>
+                        <option value="advisor">Advisor</option>
+                        <option value="other">Sonstige</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-4 flex gap-2">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 text-sm font-medium bg-[#1a3a2a] text-white rounded-lg hover:bg-[#152e22] transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2"
+                      >
+                        Hinzufügen
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddForm(false)
+                          setForm(EMPTY_FORM)
+                        }}
+                        className="px-4 py-2 text-sm font-medium text-[#6b6860] border border-[#e4e2db] rounded-lg hover:bg-[#f1f0ed] transition-colors duration-150"
+                      >
+                        Abbrechen
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Add Row Button */}
+              {!showAddForm && (
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-[#6b6860] hover:bg-[#f8f7f4] hover:text-[#1a3a2a] transition-colors duration-150"
+                >
+                  <Plus className="h-4 w-4" />
+                  Gesellschafter hinzufügen
+                </button>
+              )}
+            </div>
+
+            {/* Summen-Zeile */}
+            {shareholders.length > 0 && (
+              <div className="mt-2.5 flex items-center justify-end gap-2">
+                {totalValid ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#d8f3dc] text-[#1a3a2a] text-xs font-semibold font-tabular">
+                    <Check className="h-3.5 w-3.5" />
+                    100,00 %
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#fef3cd] text-[#b7791f] text-xs font-semibold font-tabular">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {formatPercent(totalPercent)} · {missing > 0 ? `${missing.toFixed(2).replace('.', ',')} % fehlen` : `${Math.abs(missing).toFixed(2).replace('.', ',')} % zu viel`}
                   </span>
                 )}
-                {shareholders.length > 0 && totalValid && (
-                  <span className="ml-2 text-green-600">100 % vergeben</span>
-                )}
-              </CardDescription>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setShowAddForm(!showAddForm)}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Gesellschafter
-            </Button>
-          </CardHeader>
-
-          {showAddForm && (
-            <CardContent className="border-t bg-muted/30">
-              <form onSubmit={handleAddShareholder} className="grid gap-4 sm:grid-cols-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="g-name">Name</Label>
-                  <Input
-                    id="g-name"
-                    value={form.name}
-                    onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                    placeholder="Max Mustermann"
-                    required
-                    autoFocus
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="g-pct">Anteil (%)</Label>
-                  <Input
-                    id="g-pct"
-                    type="number"
-                    min="0.01"
-                    max="100"
-                    step="0.01"
-                    value={form.share_percent}
-                    onChange={(e) => setForm((p) => ({ ...p, share_percent: e.target.value }))}
-                    placeholder="50"
-                    required
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="g-shares">Geschäftsanteile</Label>
-                  <Input
-                    id="g-shares"
-                    type="number"
-                    min="1"
-                    value={form.shares}
-                    onChange={(e) => setForm((p) => ({ ...p, shares: e.target.value }))}
-                    placeholder="12500"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="g-type">Typ</Label>
-                  <select
-                    id="g-type"
-                    value={form.shareholder_type}
-                    onChange={(e) =>
-                      setForm((p) => ({
-                        ...p,
-                        shareholder_type: e.target.value as GuestShareholder['shareholder_type'],
-                      }))
-                    }
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  >
-                    <option value="founder">Gründer</option>
-                    <option value="investor">Investor</option>
-                    <option value="employee">Mitarbeiter</option>
-                    <option value="advisor">Advisor</option>
-                    <option value="other">Sonstige</option>
-                  </select>
-                </div>
-                <div className="sm:col-span-4 flex gap-2">
-                  <Button type="submit" size="sm">
-                    Hinzufügen
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddForm(false)
-                      setForm(EMPTY_FORM)
-                    }}
-                  >
-                    Abbrechen
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          )}
-
-          <CardContent className="p-0">
-            {shareholders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center gap-2 py-16 text-center text-muted-foreground">
-                <TrendingUp className="h-10 w-10 opacity-20" />
-                <p className="text-sm">
-                  Füge Gesellschafter hinzu um deinen Cap Table aufzubauen
-                </p>
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Typ</TableHead>
-                    <TableHead className="text-right">Anteil</TableHead>
-                    <TableHead className="text-right">Geschäftsanteile</TableHead>
-                    <TableHead className="w-10" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {shareholders.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{TYPE_LABELS[s.shareholder_type]}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatPercent(s.share_percent)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {s.shares != null ? s.shares.toLocaleString('de-DE') : '–'}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                          onClick={() => deleteShareholder(s.id)}
-                          title="Entfernen"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-3">
-          <Button
-            variant="outline"
-            onClick={handleSimulateRound}
-            disabled={shareholders.length === 0}
-            className="sm:flex-1"
-          >
-            <TrendingUp className="mr-2 h-4 w-4" />
-            Runde simulieren
-          </Button>
-          <Button
-            onClick={openLoginModal}
-            className="sm:flex-1"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Speichern
-          </Button>
-        </div>
-
-        {/* Hinweis für nicht-eingeloggte User */}
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          Dein Cap Table wird im Browser gespeichert.{' '}
+          {/* CTA Button */}
           <button
-            onClick={openLoginModal}
-            className="underline underline-offset-2 hover:text-foreground transition-colors"
+            onClick={handleSimulateRound}
+            disabled={shareholders.length === 0 || !totalValid}
+            className="w-full flex items-center justify-center gap-2 py-3 px-6 bg-[#1a3a2a] text-white rounded-lg text-sm font-medium hover:bg-[#152e22] transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2"
           >
-            Konto erstellen
-          </button>{' '}
-          um ihn dauerhaft zu sichern.
-        </p>
+            <TrendingUp className="h-4 w-4" />
+            Finanzierungsrunde simulieren
+          </button>
+
+          {/* Hinweis */}
+          <p className="text-center text-xs text-[#a09e99]">
+            Dein Cap Table wird im Browser gespeichert.{' '}
+            <button
+              onClick={openLoginModal}
+              className="underline underline-offset-2 hover:text-[#1a1917] transition-colors duration-150"
+            >
+              Konto erstellen
+            </button>{' '}
+            um ihn dauerhaft zu sichern.
+          </p>
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t py-6 mt-10">
-        <div className="container flex justify-center gap-6 text-xs text-muted-foreground">
-          <Link to="/impressum" className="hover:text-foreground">
+      <footer className="border-t border-[#e4e2db] py-6">
+        <div className="max-w-2xl mx-auto px-4 flex justify-center gap-6 text-xs text-[#a09e99]">
+          <Link
+            to="/impressum"
+            className="hover:text-[#1a1917] transition-colors duration-150"
+          >
             Impressum
           </Link>
-          <Link to="/datenschutz" className="hover:text-foreground">
+          <Link
+            to="/datenschutz"
+            className="hover:text-[#1a1917] transition-colors duration-150"
+          >
             Datenschutz
           </Link>
         </div>

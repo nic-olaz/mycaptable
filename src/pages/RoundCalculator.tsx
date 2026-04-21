@@ -2,20 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { solveRound, dilute, formatEur, formatPercent, type SolveFor } from '@/lib/calculator'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { ArrowLeft, Calculator, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Calculator } from 'lucide-react'
 import AppHeader from '@/components/AppHeader'
 import LoginModal from '@/components/LoginModal'
 import { toast } from '@/lib/use-toast'
@@ -24,23 +11,31 @@ import { useCapTable } from '@/context/CapTableContext'
 type FieldName = 'pre_money' | 'investment' | 'investor_percent'
 
 const FIELD_LABELS: Record<FieldName, string> = {
-  pre_money: 'Pre-money Bewertung (€)',
-  investment: 'Investment (€)',
-  investor_percent: 'Investor-Anteil (%)',
+  pre_money: 'Pre-Money Bewertung',
+  investment: 'Investment',
+  investor_percent: 'Investor-Anteil',
+}
+
+const FIELD_SOLVE_LABELS: Record<FieldName, string> = {
+  pre_money: 'Pre-Money Bewertung',
+  investment: 'Investment',
+  investor_percent: 'Investor-Anteil',
+}
+
+const FIELD_PREFIX: Record<FieldName, string> = {
+  pre_money: '€',
+  investment: '€',
+  investor_percent: '%',
 }
 
 export default function RoundCalculator() {
   const navigate = useNavigate()
   const { shareholders: guestShareholders, openLoginModal } = useCapTable()
 
-  // Prüfen ob User eingeloggt ist
   const [userId, setUserId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  // Welches Feld wird berechnet (ist deaktiviert)
   const [solveFor, setSolveFor] = useState<SolveFor>('investor_percent')
 
-  // Eingabefelder (als Strings für die UI)
   const [fields, setFields] = useState<Record<FieldName, string>>({
     pre_money: '',
     investment: '',
@@ -107,7 +102,6 @@ export default function RoundCalculator() {
 
   async function saveRound() {
     if (!result || !userId) {
-      // Nicht eingeloggt → Login-Modal öffnen
       openLoginModal()
       return
     }
@@ -116,9 +110,6 @@ export default function RoundCalculator() {
     try {
       const roundName = `Runde ${new Date().toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })}`
 
-      // Zuerst eine Company aus dem Guest State finden oder eine neue anlegen
-      // (Falls der User bereits eingeloggt ist, gibt es möglicherweise schon Unternehmen im Dashboard)
-      // Für den einfachen Fall: wir speichern auf das erste Company des Users
       const { data: companies } = await supabase
         .from('companies')
         .select('id')
@@ -181,7 +172,6 @@ export default function RoundCalculator() {
     }
   }
 
-  // Gesellschafter aus dem Guest Context (kein Supabase-Fetch mehr nötig)
   const shareholders = guestShareholders.map((s) => ({
     name: s.name,
     share_percent: s.share_percent,
@@ -195,246 +185,312 @@ export default function RoundCalculator() {
       )
     : null
 
+  // Berechne Diff pro Gesellschafter
+  function getDiff(entry: { name: string; share_percent: number; diluted_from: number }) {
+    if (entry.diluted_from === 0) return null
+    return entry.share_percent - entry.diluted_from
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#f8f7f4]">
       <AppHeader />
       <LoginModal />
 
-      <main className="container max-w-4xl py-10">
-        <Link
-          to="/"
-          className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Cap Table
-        </Link>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold tracking-tight">Runden-Rechner</h1>
-          <p className="mt-1 text-muted-foreground">
-            Gib zwei Werte ein – der dritte wird berechnet
-          </p>
+      <main className="max-w-2xl mx-auto px-4 pb-16">
+        {/* Back */}
+        <div className="mt-8 mb-10">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-[#6b6860] hover:text-[#1a1917] transition-colors duration-150"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Cap Table
+          </Link>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Calculator Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calculator className="h-5 w-5" />
-                3-Parameter-Solver
-              </CardTitle>
-              <CardDescription>
-                Wähle welcher Wert berechnet werden soll
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Radio: was berechnen? */}
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Berechne...
-                </Label>
-                <div className="flex gap-2 flex-wrap">
-                  {(['pre_money', 'investment', 'investor_percent'] as const).map((field) => (
-                    <button
-                      key={field}
-                      type="button"
-                      onClick={() => handleSolveForChange(field)}
-                      className={`rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
-                        solveFor === field
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-input bg-background hover:bg-muted'
-                      }`}
-                    >
-                      {field === 'pre_money'
-                        ? 'Pre-money'
-                        : field === 'investment'
-                          ? 'Investment'
-                          : 'Investor-%'}
-                    </button>
-                  ))}
+        {/* Heading */}
+        <div className="mb-10">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-2">
+            Finanzierungsrunde berechnen
+          </p>
+          <h1 className="text-4xl font-semibold tracking-tight text-[#1a1917]">
+            Gib zwei Werte ein,<br />den dritten berechnen wir.
+          </h1>
+        </div>
+
+        {/* Was soll berechnet werden */}
+        <div className="bg-white border border-[#e4e2db] rounded-xl p-5 mb-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-3">
+            Was soll berechnet werden?
+          </p>
+          <div className="flex flex-col gap-2">
+            {(['pre_money', 'investment', 'investor_percent'] as const).map((field) => (
+              <label
+                key={field}
+                className="flex items-center gap-3 cursor-pointer group"
+              >
+                <div
+                  className={`h-4 w-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${
+                    solveFor === field
+                      ? 'border-[#1a3a2a] bg-[#1a3a2a]'
+                      : 'border-[#ccc9c0] group-hover:border-[#1a3a2a]'
+                  }`}
+                >
+                  {solveFor === field && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-white" />
+                  )}
+                </div>
+                <input
+                  type="radio"
+                  name="solveFor"
+                  value={field}
+                  checked={solveFor === field}
+                  onChange={() => handleSolveForChange(field)}
+                  className="sr-only"
+                />
+                <span className={`text-sm transition-colors duration-150 ${
+                  solveFor === field
+                    ? 'font-medium text-[#1a1917]'
+                    : 'text-[#6b6860] group-hover:text-[#1a1917]'
+                }`}>
+                  {FIELD_SOLVE_LABELS[field]}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {/* Input-Felder */}
+        <div className="bg-white border border-[#e4e2db] rounded-xl p-5 mb-6 space-y-5">
+          {(['pre_money', 'investment', 'investor_percent'] as const).map((field) => {
+            const isDisabled = solveFor === field
+            return (
+              <div key={field}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label
+                    htmlFor={field}
+                    className={`text-xs font-semibold uppercase tracking-widest ${
+                      isDisabled ? 'text-[#a09e99]' : 'text-[#6b6860]'
+                    }`}
+                  >
+                    {FIELD_LABELS[field]}
+                  </label>
+                  {isDisabled && (
+                    <span className="flex items-center gap-1 text-xs text-[#a09e99]">
+                      <Calculator className="h-3 w-3" />
+                      wird berechnet
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium font-tabular select-none ${
+                    isDisabled ? 'text-[#a09e99]' : 'text-[#6b6860]'
+                  }`}>
+                    {FIELD_PREFIX[field]}
+                  </span>
+                  <input
+                    id={field}
+                    type="number"
+                    min="0"
+                    step={field === 'investor_percent' ? '0.1' : '1000'}
+                    value={isDisabled ? '' : fields[field]}
+                    onChange={(e) => handleFieldChange(field, e.target.value)}
+                    disabled={isDisabled}
+                    placeholder={
+                      isDisabled
+                        ? '–'
+                        : field === 'investor_percent'
+                          ? '20'
+                          : field === 'investment'
+                            ? '1.000.000'
+                            : '4.000.000'
+                    }
+                    className={`w-full pl-8 pr-4 py-2.5 text-sm border-2 rounded-lg font-tabular text-[#1a1917] placeholder:text-[#a09e99] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 transition-all duration-150 ${
+                      isDisabled
+                        ? 'border-dashed border-[#ccc9c0] bg-[#f1f0ed] text-[#a09e99] cursor-not-allowed'
+                        : 'border-[#e4e2db] bg-white hover:border-[#ccc9c0]'
+                    }`}
+                  />
                 </div>
               </div>
+            )
+          })}
 
-              {/* Input fields */}
-              <div className="space-y-4">
-                {(['pre_money', 'investment', 'investor_percent'] as const).map((field) => {
-                  const isDisabled = solveFor === field
+          {/* Investor Name */}
+          <div>
+            <label
+              htmlFor="investor-name"
+              className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] block mb-1.5"
+            >
+              Name des Investors
+            </label>
+            <input
+              id="investor-name"
+              type="text"
+              value={investorName}
+              onChange={(e) => setInvestorName(e.target.value)}
+              placeholder="z.B. VC Fund Alpha (optional)"
+              className="w-full px-3 py-2.5 text-sm border border-[#e4e2db] rounded-lg bg-white text-[#1a1917] placeholder:text-[#a09e99] focus:outline-none focus:ring-2 focus:ring-[#1a3a2a] focus:ring-offset-1 transition-colors"
+            />
+          </div>
+
+          {calcError && (
+            <div className="rounded-lg border border-[#fce8e6] bg-[#fce8e6] p-3 text-sm text-[#c0392b]">
+              {calcError}
+            </div>
+          )}
+
+          <button
+            onClick={calculate}
+            className="w-full py-3 px-6 bg-[#1a3a2a] text-white rounded-lg text-sm font-medium hover:bg-[#152e22] transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2"
+          >
+            Berechnen
+          </button>
+        </div>
+
+        {/* Ergebnis */}
+        {result ? (
+          <div className="space-y-6">
+            {/* Separator */}
+            <div className="flex items-center gap-3">
+              <div className="flex-1 border-t border-[#e4e2db]" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99]">Ergebnis</span>
+              <div className="flex-1 border-t border-[#e4e2db]" />
+            </div>
+
+            {/* Post-Money Highlight */}
+            <div className="bg-white border border-[#e4e2db] rounded-xl p-6">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860] mb-2">
+                Post-Money Bewertung
+              </p>
+              <p className="text-5xl font-bold font-tabular text-[#1a3a2a] tracking-tight">
+                {formatEur(result.post_money)}
+              </p>
+
+              {/* Kennzahlen */}
+              <div className="grid grid-cols-3 gap-4 mt-6 pt-5 border-t border-[#f1f0ed]">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] mb-1">
+                    Pre-Money
+                  </p>
+                  <p className="text-base font-semibold font-tabular text-[#1a1917]">
+                    {formatEur(result.pre_money)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] mb-1">
+                    Investment
+                  </p>
+                  <p className="text-base font-semibold font-tabular text-[#1a1917]">
+                    {formatEur(result.investment)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] mb-1">
+                    Investor-Anteil
+                  </p>
+                  <p className="text-base font-semibold font-tabular text-[#1a1917]">
+                    {formatPercent(result.investor_percent)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Verwässerungs-Tabelle */}
+            {dilutedTable && dilutedTable.length > 0 && (
+              <div className="bg-white border border-[#e4e2db] rounded-xl overflow-hidden">
+                <div className="px-5 py-3 border-b border-[#e4e2db]">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-[#6b6860]">
+                    Verwässerter Cap Table
+                  </p>
+                </div>
+
+                {/* Table Header */}
+                <div className="grid grid-cols-[1fr_auto_auto_auto] px-5 py-2.5 border-b border-[#f1f0ed]">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99]">
+                    Name
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-20">
+                    Vorher
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-20">
+                    Nachher
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-widest text-[#a09e99] text-right w-16">
+                    Diff
+                  </span>
+                </div>
+
+                {dilutedTable.map((entry, i) => {
+                  const diff = getDiff(entry)
+                  const isNew = entry.diluted_from === 0
                   return (
-                    <div key={field} className="space-y-1.5">
-                      <Label htmlFor={field} className={isDisabled ? 'text-muted-foreground' : ''}>
-                        {FIELD_LABELS[field]}
-                        {isDisabled && (
-                          <Badge variant="secondary" className="ml-2 text-xs">
-                            wird berechnet
-                          </Badge>
+                    <div
+                      key={i}
+                      className={`grid grid-cols-[1fr_auto_auto_auto] items-center px-5 py-3 border-b border-[#f1f0ed] last:border-0 ${
+                        isNew ? 'bg-[#d8f3dc]/30' : 'hover:bg-[#f8f7f4]'
+                      } transition-colors duration-150`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-[#1a1917]">{entry.name}</span>
+                        {isNew && (
+                          <span className="px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wider bg-[#d8f3dc] text-[#1a3a2a] rounded">
+                            neu
+                          </span>
                         )}
-                      </Label>
-                      <Input
-                        id={field}
-                        type="number"
-                        min="0"
-                        step={field === 'investor_percent' ? '0.1' : '1000'}
-                        value={isDisabled ? '' : fields[field]}
-                        onChange={(e) => handleFieldChange(field, e.target.value)}
-                        disabled={isDisabled}
-                        placeholder={
-                          isDisabled
-                            ? 'wird berechnet'
-                            : field === 'investor_percent'
-                              ? 'z.B. 20'
-                              : 'z.B. 5000000'
-                        }
-                        className={isDisabled ? 'bg-muted' : ''}
-                      />
+                      </div>
+                      <span className="text-sm font-tabular text-right text-[#a09e99] w-20">
+                        {isNew ? '–' : formatPercent(entry.diluted_from)}
+                      </span>
+                      <span className="text-sm font-tabular font-medium text-right text-[#1a1917] w-20">
+                        {formatPercent(entry.share_percent)}
+                      </span>
+                      <span className={`text-sm font-tabular font-medium text-right w-16 ${
+                        isNew
+                          ? 'text-[#2d6a4f]'
+                          : diff !== null && diff < 0
+                            ? 'text-red-600'
+                            : 'text-[#2d6a4f]'
+                      }`}>
+                        {isNew
+                          ? `+${formatPercent(entry.share_percent)}`
+                          : diff !== null
+                            ? `${diff < 0 ? '' : '+'}${formatPercent(diff)}`
+                            : '–'}
+                      </span>
                     </div>
                   )
                 })}
               </div>
-
-              {/* Investor Name */}
-              <div className="space-y-1.5">
-                <Label htmlFor="investor-name">Name des Investors (optional)</Label>
-                <Input
-                  id="investor-name"
-                  value={investorName}
-                  onChange={(e) => setInvestorName(e.target.value)}
-                  placeholder="z.B. VC Fund Alpha"
-                />
-              </div>
-
-              {calcError && (
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                  {calcError}
-                </div>
-              )}
-
-              <Button className="w-full" onClick={calculate}>
-                Berechnen
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Result Card */}
-          <div className="space-y-4">
-            {result && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Ergebnis</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="rounded-lg bg-muted p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Pre-money
-                      </div>
-                      <div className="mt-1 text-xl font-semibold tabular-nums">
-                        {formatEur(result.pre_money)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-muted p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        Investment
-                      </div>
-                      <div className="mt-1 text-xl font-semibold tabular-nums">
-                        {formatEur(result.investment)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-primary/70">
-                        Post-money
-                      </div>
-                      <div className="mt-1 text-xl font-semibold tabular-nums">
-                        {formatEur(result.post_money)}
-                      </div>
-                    </div>
-                    <div className="rounded-lg bg-primary/10 border border-primary/20 p-3">
-                      <div className="text-xs font-medium uppercase tracking-wide text-primary/70">
-                        Investor-Anteil
-                      </div>
-                      <div className="mt-1 text-xl font-semibold tabular-nums">
-                        {formatPercent(result.investor_percent)}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
-            {/* Runde übernehmen */}
-            {result && (
-              <Button
-                className="w-full"
-                onClick={() => { void saveRound() }}
-                disabled={saving}
-              >
-                <CheckCircle className="mr-2 h-4 w-4" />
-                {saving
-                  ? 'Wird gespeichert...'
-                  : userId
-                    ? 'Runde übernehmen'
-                    : 'Anmelden & Runde speichern'}
-              </Button>
-            )}
-
-            {/* Dilution Table */}
-            {result && dilutedTable && dilutedTable.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Verwässerung</CardTitle>
-                  <CardDescription>
-                    Anteile nach der Runde
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Gesellschafter</TableHead>
-                        <TableHead className="text-right">Vorher</TableHead>
-                        <TableHead className="text-right">Nachher</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {dilutedTable.map((entry, i) => (
-                        <TableRow key={i}>
-                          <TableCell className="font-medium">
-                            {entry.name}
-                            {entry.diluted_from === 0 && (
-                              <Badge variant="default" className="ml-2 text-xs">
-                                neu
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums text-muted-foreground">
-                            {entry.diluted_from > 0 ? formatPercent(entry.diluted_from) : '–'}
-                          </TableCell>
-                          <TableCell className="text-right tabular-nums font-medium">
-                            {formatPercent(entry.share_percent)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
-
-            {!result && (
-              <div className="flex h-full items-center justify-center rounded-lg border border-dashed py-16 text-center text-muted-foreground">
-                <div>
-                  <Calculator className="mx-auto mb-2 h-8 w-8 opacity-40" />
-                  <p className="text-sm">Gib Werte ein und klicke Berechnen</p>
-                  {shareholders.length === 0 && (
-                    <p className="mt-1 text-xs">
-                      Verwässerung wird angezeigt sobald Gesellschafter eingetragen sind
-                    </p>
-                  )}
-                </div>
-              </div>
+            {/* Save Button */}
+            <button
+              onClick={() => { void saveRound() }}
+              disabled={saving}
+              className="w-full py-3 px-6 border border-[#1a3a2a] text-[#1a3a2a] rounded-lg text-sm font-medium hover:bg-[#1a3a2a] hover:text-white transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2 disabled:opacity-50"
+            >
+              {saving
+                ? 'Wird gespeichert...'
+                : userId
+                  ? 'Runde speichern'
+                  : 'Anmelden & Runde speichern'}
+            </button>
+          </div>
+        ) : (
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center gap-3 py-14 text-center border border-dashed border-[#ccc9c0] rounded-xl">
+            <Calculator className="h-8 w-8 text-[#ccc9c0]" />
+            <p className="text-sm text-[#a09e99]">
+              Gib Werte ein und klicke Berechnen
+            </p>
+            {shareholders.length === 0 && (
+              <p className="text-xs text-[#a09e99]">
+                Verwässerung wird angezeigt sobald Gesellschafter eingetragen sind
+              </p>
             )}
           </div>
-        </div>
+        )}
       </main>
     </div>
   )

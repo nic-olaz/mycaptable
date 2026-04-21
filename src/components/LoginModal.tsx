@@ -7,16 +7,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { signInWithGoogle, signInWithApple, signInWithMagicLink } from '@/lib/auth'
 import { useCapTable } from '@/context/CapTableContext'
 
-// Inline Google-Icon als SVG
 function GoogleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" aria-hidden="true">
       <path
         d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
         fill="#4285F4"
@@ -37,10 +33,9 @@ function GoogleIcon() {
   )
 }
 
-// Inline Apple-Icon als SVG
 function AppleIcon() {
   return (
-    <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0 fill-current" aria-hidden="true">
       <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
     </svg>
   )
@@ -50,6 +45,7 @@ export default function LoginModal() {
   const { showLoginModal, closeLoginModal } = useCapTable()
   const [email, setEmail] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [showMagicLink, setShowMagicLink] = useState(false)
   const [loading, setLoading] = useState<'google' | 'apple' | 'magic' | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -58,7 +54,6 @@ export default function LoginModal() {
     setLoading('google')
     try {
       await signInWithGoogle()
-      // Redirect passiert automatisch
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler bei Google-Anmeldung')
       setLoading(null)
@@ -94,6 +89,7 @@ export default function LoginModal() {
     if (!open) {
       closeLoginModal()
       setMagicLinkSent(false)
+      setShowMagicLink(false)
       setEmail('')
       setError(null)
     }
@@ -101,61 +97,63 @@ export default function LoginModal() {
 
   return (
     <Dialog open={showLoginModal} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-sm">
-        <DialogHeader>
-          <DialogTitle className="text-center text-xl">Speichere deinen Cap Table</DialogTitle>
-          <DialogDescription className="text-center">
-            Melde dich an, um deinen Cap Table zu speichern und
-            <br />
-            später wieder aufzurufen.
+      <DialogContent className="sm:max-w-sm bg-white border-[#e4e2db] p-8">
+        <DialogHeader className="mb-6">
+          <DialogTitle className="text-center text-xl font-semibold text-[#1a1917] tracking-tight">
+            Daten speichern
+          </DialogTitle>
+          <DialogDescription className="text-center text-sm text-[#6b6860] mt-1">
+            Melde dich an, um deinen Cap Table zu speichern.
           </DialogDescription>
         </DialogHeader>
 
         {magicLinkSent ? (
-          <div className="rounded-md border border-green-200 bg-green-50 p-4 text-center text-sm text-green-800">
-            <p className="font-medium">Prüf deine E-Mails</p>
-            <p className="mt-1 text-green-700">
+          <div className="rounded-lg border border-[#d8f3dc] bg-[#d8f3dc] p-4 text-center">
+            <p className="text-sm font-semibold text-[#1a3a2a]">Prüf deine E-Mails</p>
+            <p className="mt-1 text-sm text-[#2d6a4f]">
               Wir haben einen Magic Link an <strong>{email}</strong> geschickt.
             </p>
           </div>
         ) : (
           <div className="space-y-3">
             {/* Google */}
-            <Button
-              variant="outline"
-              className="w-full gap-2"
+            <button
               onClick={() => { void handleGoogle() }}
               disabled={loading !== null}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-white border border-[#e4e2db] rounded-lg text-sm font-medium text-[#1a1917] hover:bg-[#f8f7f4] transition-colors duration-150 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2"
             >
               <GoogleIcon />
-              {loading === 'google' ? 'Weiterleitung...' : 'Mit Google anmelden'}
-            </Button>
+              {loading === 'google' ? 'Weiterleitung...' : 'Mit Google fortfahren'}
+            </button>
 
             {/* Apple */}
-            <Button
-              variant="outline"
-              className="w-full gap-2"
+            <button
               onClick={() => { void handleApple() }}
               disabled={loading !== null}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 bg-[#1a1917] border border-[#1a1917] rounded-lg text-sm font-medium text-white hover:bg-[#2a2926] transition-colors duration-150 disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2"
             >
               <AppleIcon />
-              {loading === 'apple' ? 'Weiterleitung...' : 'Mit Apple anmelden'}
-            </Button>
+              {loading === 'apple' ? 'Weiterleitung...' : 'Mit Apple fortfahren'}
+            </button>
 
             {/* Trennlinie */}
-            <div className="relative flex items-center gap-2">
-              <div className="flex-1 border-t" />
-              <span className="text-xs text-muted-foreground">oder</span>
-              <div className="flex-1 border-t" />
+            <div className="relative flex items-center gap-3 py-1">
+              <div className="flex-1 border-t border-[#e4e2db]" />
+              <span className="text-xs text-[#a09e99]">oder</span>
+              <div className="flex-1 border-t border-[#e4e2db]" />
             </div>
 
-            {/* Magic Link */}
-            <form onSubmit={(e) => { void handleMagicLink(e) }} className="space-y-3">
-              <div className="space-y-1.5">
-                <Label htmlFor="modal-email" className="text-sm">
-                  E-Mail-Adresse
-                </Label>
-                <Input
+            {/* Magic Link – collapsible */}
+            {!showMagicLink ? (
+              <button
+                onClick={() => setShowMagicLink(true)}
+                className="w-full text-center text-sm text-[#6b6860] hover:text-[#1a1917] transition-colors duration-150"
+              >
+                Oder per Magic Link
+              </button>
+            ) : (
+              <form onSubmit={(e) => { void handleMagicLink(e) }} className="space-y-3">
+                <input
                   id="modal-email"
                   type="email"
                   value={email}
@@ -163,34 +161,42 @@ export default function LoginModal() {
                   placeholder="du@beispiel.de"
                   required
                   disabled={loading !== null}
+                  autoFocus
+                  className="w-full px-3 py-2 text-sm border border-[#e4e2db] rounded-lg bg-white text-[#1a1917] placeholder:text-[#a09e99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a3a2a] focus-visible:ring-offset-2 disabled:opacity-50 transition-colors"
                 />
-              </div>
 
-              {error && (
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-destructive">
-                  {error}
-                </div>
-              )}
+                {error && (
+                  <div className="rounded-lg border border-[#fce8e6] bg-[#fce8e6] p-2.5 text-xs text-[#c0392b]">
+                    {error}
+                  </div>
+                )}
 
-              <Button
-                type="submit"
-                variant="ghost"
-                size="sm"
-                className="w-full text-muted-foreground hover:text-foreground"
-                disabled={loading !== null}
-              >
-                {loading === 'magic' ? 'Wird gesendet...' : 'Magic Link senden'}
-              </Button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={loading !== null}
+                  className="w-full px-4 py-2 text-sm font-medium text-[#6b6860] border border-[#e4e2db] rounded-lg hover:bg-[#f1f0ed] transition-colors duration-150 disabled:opacity-50"
+                >
+                  {loading === 'magic' ? 'Wird gesendet...' : 'Magic Link senden'}
+                </button>
+              </form>
+            )}
           </div>
         )}
 
         {/* Footer */}
-        <div className="flex justify-center gap-4 border-t pt-3 text-xs text-muted-foreground">
-          <Link to="/impressum" className="hover:text-foreground" onClick={closeLoginModal}>
+        <div className="flex justify-center gap-4 border-t border-[#e4e2db] pt-4 mt-4 text-xs text-[#a09e99]">
+          <Link
+            to="/impressum"
+            className="hover:text-[#1a1917] transition-colors duration-150"
+            onClick={closeLoginModal}
+          >
             Impressum
           </Link>
-          <Link to="/datenschutz" className="hover:text-foreground" onClick={closeLoginModal}>
+          <Link
+            to="/datenschutz"
+            className="hover:text-[#1a1917] transition-colors duration-150"
+            onClick={closeLoginModal}
+          >
             Datenschutz
           </Link>
         </div>

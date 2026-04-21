@@ -1,77 +1,83 @@
+/* Farb-Entscheidung: Dunkelgrün (#1a3a2a) statt Dunkelblau.
+   Finanz-Tools assoziieren Grün mit Wachstum, Kapital und Erfolg.
+   Gleichzeitig wirkt das gesättigte Dunkelgrün seriös und premium –
+   kein generisches SaaS-Blau. */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Backgrounds */
+    --background: #f8f7f4;
+    --surface: #ffffff;
+    --surface-2: #f1f0ed;
 
+    /* Borders */
+    --border: #e4e2db;
+    --border-strong: #ccc9c0;
+
+    /* Text */
+    --text-primary: #1a1917;
+    --text-secondary: #6b6860;
+    --text-muted: #a09e99;
+
+    /* Brand – Dunkelgrün: Wachstum + Kapital + Seriosität */
+    --primary: #1a3a2a;
+    --primary-hover: #152e22;
+    --primary-foreground: #ffffff;
+
+    /* Akzent */
+    --accent: #2d6a4f;
+    --accent-light: #d8f3dc;
+
+    /* States */
+    --success: #2d6a4f;
+    --success-light: #d8f3dc;
+    --destructive: #c0392b;
+    --destructive-light: #fce8e6;
+    --warning: #b7791f;
+    --warning-light: #fef3cd;
+
+    /* shadcn-Kompatibilität – HSL-Werte für shadcn-Komponenten */
+    --foreground: 20 6% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 20 6% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-
+    --popover-foreground: 20 6% 10%;
+    --secondary: 40 8% 93%;
+    --secondary-foreground: 20 6% 10%;
+    --muted: 40 8% 93%;
+    --muted-foreground: 30 4% 45%;
+    --destructive: 5 67% 46%;
+    --destructive-foreground: 0 0% 100%;
+    --input: 38 10% 88%;
+    --ring: 153 37% 17%;
     --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
   }
 }
 
 @layer base {
   * {
-    @apply border-border;
+    border-color: var(--border);
   }
+
   body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    background: var(--background);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .font-tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
   }
 }
